@@ -194,6 +194,7 @@
                         INITIAL_BROTHERS.forEach(b => setDoc(doc(brothersRef, b.id), b).catch(() => {}));
                         INITIAL_EVENTS.forEach(e => setDoc(doc(eventsRef, e.id), e).catch(() => {}));
                         INITIAL_TURNS.forEach(t => setDoc(doc(turnsRef, t.id), t).catch(() => {}));
+                        INITIAL_RESERVATIONS.forEach(r => setDoc(doc(reservationsRef, r.id), r).catch(() => {}));
                         // Fallback visual inmediato
                         setBrothers(INITIAL_BROTHERS);
                     } else {
@@ -230,9 +231,9 @@
                     unsubTurns();
                     unsubReservations();
                 };
-            }, [user]);
+            }, [user]); 
 
-            // 2. Auth Init & Whitelist Check
+            // 2. Auth Init
             useEffect(() => {
                 const initAuth = async () => {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -245,55 +246,61 @@
                     setUser(firebaseUser);
                     setIsAuthChecking(false);
                     if (firebaseUser) {
-                        // Esperar a que se carguen los hermanos si ya están escuchándose
-                        if (brothers.length > 0) {
-                           checkWhitelist(firebaseUser);
-                        } else {
-                           // Si no hay hermanos cargados, setear usuario para activar el useEffect de datos
-                           setUser(firebaseUser); 
-                        }
+                        // No logic here to avoid race conditions. 
+                        // Rely on useEffect below to check whitelist once 'user' and 'brothers' are ready.
                     } else {
                         setIsLoggedIn(false);
                         setCurrentUser(null);
-                        setUser(null);
                     }
                 });
                 return () => unsubscribe();
-            }, [brothers]);
+            }, []); // Run once on mount
 
-            const checkWhitelist = (firebaseUser) => {
-                if (!firebaseUser.email) {
-                    setLoginError('Error: No se pudo obtener el email.');
-                    signOut(auth);
-                    return;
-                }
+            // 3. Whitelist Check (Robust Logic)
+            useEffect(() => {
+                if (isAuthChecking) return; 
+                if (!user) return; 
 
-                const emailToCheck = firebaseUser.email.toLowerCase();
+                // --- MASTER ADMIN BYPASS (Immediate Access) ---
                 const MASTER_EMAIL = 'aortizvillafranca@gmail.com'; 
+                const emailToCheck = user.email ? user.email.toLowerCase() : '';
 
-                const brother = brothers.find(b => b.email && b.email.toLowerCase() === emailToCheck);
-                
-                if (brother) {
-                    setCurrentUser(brother);
-                    setIsLoggedIn(true);
-                    setLoginError('');
-                } else if (emailToCheck === MASTER_EMAIL) {
-                    const adminProfile = {
+                if (emailToCheck === MASTER_EMAIL) {
+                    // Check if profile exists in loaded brothers to get real ID
+                    const brother = brothers.find(b => b.email && b.email.toLowerCase() === emailToCheck);
+                    
+                    const adminProfile = brother || {
                         id: 'master_admin',
-                        name: firebaseUser.displayName || 'Admin',
+                        name: user.displayName || 'Admin',
                         nickname: 'Admin',
                         email: emailToCheck,
                         role: 'junta',
                         points: 100
                     };
+                    
                     setCurrentUser(adminProfile);
                     setIsLoggedIn(true);
                     setLoginError('');
-                } else {
-                    setLoginError('Acceso denegado. Tu email no está en la lista blanca del cuartel.');
-                    signOut(auth);
+                    return; // Grant access immediately
                 }
-            };
+
+                // --- NORMAL USERS CHECK ---
+                // Wait for brothers list to populate before denying access
+                if (brothers.length > 0) {
+                    const brother = brothers.find(b => b.email && b.email.toLowerCase() === emailToCheck);
+                    
+                    if (brother) {
+                        setCurrentUser(brother);
+                        setIsLoggedIn(true);
+                        setLoginError('');
+                    } else {
+                        console.warn("User not in whitelist:", emailToCheck);
+                        setLoginError('Acceso denegado. Tu email no está registrado en el cuartel.');
+                        signOut(auth);
+                        setIsLoggedIn(false);
+                    }
+                }
+            }, [user, brothers, isAuthChecking]);
 
             const handleGoogleLogin = async () => {
                 if (isLoggingIn) return; 
@@ -370,7 +377,7 @@
             const requestDeleteMember = (id) => {
                 setConfirmationModal({
                     isOpen: true,
-                    message: "¿Eliminar a este hermano?",
+                    message: "¿Eliminar a este hermano? Se borrará de la lista pero sus datos históricos pueden permanecer.",
                     onConfirm: async () => {
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'brothers', id));
                         showNotification("Hermano eliminado");
@@ -761,7 +768,7 @@
                             <div className="space-y-3">
                                 <input type="text" placeholder="Nombre completo" className="w-full p-2 border rounded" value={memberFormData.name} onChange={e => setMemberFormData({...memberFormData, name: e.target.value})}/>
                                 <input type="text" placeholder="Apodo (ej: Curro)" className="w-full p-2 border rounded" value={memberFormData.nickname} onChange={e => setMemberFormData({...memberFormData, nickname: e.target.value})}/>
-                                <input type="email" placeholder="Email de Acceso (Importante)" className="w-full p-2 border rounded" value={memberFormData.email} onChange={e => setMemberFormData({...memberFormData, email: e.target.value})}/>
+                                <input type="email" placeholder="Email (Gmail)" className="w-full p-2 border rounded" value={memberFormData.email} onChange={e => setMemberFormData({...memberFormData, email: e.target.value})}/>
                                 <div className="grid grid-cols-2 gap-2">
                                     <select className="w-full p-2 border rounded" value={memberFormData.role} onChange={e => setMemberFormData({...memberFormData, role: e.target.value})}><option value="hermano">Hermano</option><option value="junta">Junta</option></select>
                                     <input type="number" placeholder="Puntos" className="w-full p-2 border rounded" value={memberFormData.points} onChange={e => setMemberFormData({...memberFormData, points: Number(e.target.value)})}/>
