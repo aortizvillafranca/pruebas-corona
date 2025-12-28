@@ -270,21 +270,34 @@
                 }
             };
 
+            //-----------------------------------------------------------------------------------------------
             const handleGoogleLogin = async () => {
-                setLoginError('');
-                try {
-                    await signInWithPopup(auth, googleProvider);
-                } catch (error) {
-                    console.error("Error Google Auth:", error);
-                    if (error.code === 'auth/unauthorized-domain') {
-                        setLoginError('Error: Dominio no autorizado. Añade este dominio en Firebase Console (Authentication -> Settings).');
-                    } else if (error.code === 'auth/popup-closed-by-user') {
-                         setLoginError('Has cerrado la ventana de inicio de sesión.');
-                    } else {
-                        setLoginError(`Error al iniciar sesión: ${error.message}`);
-                    }
-                }
-            };
+    setLoginError('');
+    try {
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+        const result = await signInWithPopup(auth, googleProvider);
+        const firebaseUser = result.user;
+
+        // ⏳ Esperamos a que Firestore cargue hermanos
+        const waitForBrothers = setInterval(() => {
+            if (brothers.length > 0) {
+                clearInterval(waitForBrothers);
+                checkWhitelist(firebaseUser);
+            }
+        }, 200);
+
+    } catch (error) {
+        console.error("Error Google Auth:", error);
+
+        if (error.code === 'auth/unauthorized-domain') {
+            setLoginError('Dominio no autorizado en Firebase');
+        } else {
+            setLoginError(error.message);
+        }
+    }
+};
+
 
             const handleLogout = () => {
                 signOut(auth);
