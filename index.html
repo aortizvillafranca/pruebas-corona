@@ -235,30 +235,18 @@
             }, [user]); // Add user as dependency
 
             // 2. Auth Init
-            useEffect(() => {
-                const initAuth = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                };
-                initAuth();
-                const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-                    if (firebaseUser) {
-                        if (brothers.length > 0) {
-                           checkWhitelist(firebaseUser);
-                        } else {
-                           setUser(firebaseUser); 
-                        }
-                    } else {
-                        setIsLoggedIn(false);
-                        setCurrentUser(null);
-                        setUser(null);
-                    }
-                });
-                return () => unsubscribe();
-            }, [brothers]);
+         useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+}, []);
+           useEffect(() => {
+    if (user && brothers.length > 0) {
+        checkWhitelist(user);
+    }
+}, [user, brothers]);
+
 
             const checkWhitelist = (firebaseUser) => {
                 // If user is anonymous or has no email, treat as anonymous access (e.g. for development/seeding)
