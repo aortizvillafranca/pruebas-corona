@@ -246,8 +246,8 @@
                     setUser(firebaseUser);
                     setIsAuthChecking(false);
                     if (firebaseUser) {
-                        // No logic here to avoid race conditions. 
-                        // Rely on useEffect below to check whitelist once 'user' and 'brothers' are ready.
+                        // Check whitelist when user is loaded
+                        // We rely on 'brothers' being loaded. If not loaded yet, useEffect [brothers, user] will catch it.
                     } else {
                         setIsLoggedIn(false);
                         setCurrentUser(null);
@@ -360,24 +360,34 @@
                     showNotification("Nombre y Apodo obligatorios", 'error');
                     return;
                 }
+                const memberToSave = {
+                    ...memberFormData,
+                    // Asegurar que no hay undefined
+                    email: memberFormData.email || '',
+                    role: memberFormData.role || 'hermano',
+                    points: memberFormData.points || 0,
+                    attendanceStreak: memberFormData.attendanceStreak || 0
+                };
+
                 try {
                     if (editingMemberId) {
-                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'brothers', editingMemberId), memberFormData);
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'brothers', editingMemberId), memberToSave);
                         showNotification("Hermano actualizado");
                     } else {
-                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'brothers'), memberFormData);
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'brothers'), memberToSave);
                         showNotification("Hermano añadido");
                     }
                     setShowMemberModal(false);
                 } catch (e) {
-                    showNotification("Error al guardar", 'error');
+                    console.error("SaveMember Error: ", e);
+                    showNotification("Error: " + e.message, 'error');
                 }
             };
 
             const requestDeleteMember = (id) => {
                 setConfirmationModal({
                     isOpen: true,
-                    message: "¿Eliminar a este hermano? Se borrará de la lista pero sus datos históricos pueden permanecer.",
+                    message: "¿Eliminar a este hermano?",
                     onConfirm: async () => {
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'brothers', id));
                         showNotification("Hermano eliminado");
@@ -429,8 +439,8 @@
                     }
                     setShowEventModal(false);
                 } catch (e) {
-                    console.error(e);
-                    showNotification("Error al guardar", 'error');
+                    console.error("SaveEvent Error: ", e);
+                    showNotification("Error: " + e.message, 'error');
                 }
             };
 
@@ -477,7 +487,7 @@
                     showNotification("¡Cuartel Reservado!");
                     setShowReservationModal(false);
                 } catch(e) {
-                    showNotification("Error al reservar", 'error');
+                    showNotification("Error: " + e.message, 'error');
                 }
             };
 
@@ -537,7 +547,8 @@
                     }
                     setShowTurnModal(false);
                 } catch (e) {
-                    showNotification("Error al guardar turno", 'error');
+                    console.error("SaveTurn Error: ", e);
+                    showNotification("Error: " + e.message, 'error');
                 }
             };
 
@@ -904,14 +915,9 @@
                             </button>
                             {loginError && <p className="mt-4 text-red-500 text-sm bg-red-50 p-2 rounded border border-red-100">{loginError}</p>}
                             <div className="mt-6 border-t border-stone-100 pt-4">
-                                <p className="text-xs text-stone-400 mb-2">Solo para pruebas (Si no tienes Google configurado):</p>
-                                <div className="grid grid-cols-1 gap-2 max-h-[150px] overflow-y-auto no-scrollbar">
-                                    {brothers.map(bro => (
-                                        <button key={bro.id} onClick={() => { setCurrentUser(bro); setIsLoggedIn(true); }} className="text-xs bg-stone-50 border border-stone-200 p-2 rounded text-left hover:bg-stone-100">
-                                            {bro.nickname}
-                                        </button>
-                                    ))}
-                                </div>
+                                <p className="text-xs text-stone-400 mb-2">Tu dominio de prueba es:</p>
+                                <code className="block bg-stone-100 p-2 rounded text-xs select-all text-stone-600 border border-stone-200">{window.location.hostname}</code>
+                                <p className="text-[10px] text-stone-400 mt-1">Añádelo en Firebase Console - Auth - Settings</p>
                             </div>
                         </div>
                     </div>
