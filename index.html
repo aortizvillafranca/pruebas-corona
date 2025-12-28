@@ -37,26 +37,26 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
+        // Importamos funciones de Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // MODIFICADO: Añadidos imports para Google Auth y signOut
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- CONFIGURACIÓN FIREBASE (Dinámica para el entorno Canvas) ---
+        // --- CONFIGURACIÓN FIREBASE ---
         const firebaseConfig = {
-  apiKey: "AIzaSyAW0r-_9IGddjXHQyLaRdseT_rTv9tSozg",
-  authDomain: "tarumba-shop.firebaseapp.com",
-  projectId: "tarumba-shop",
-  storageBucket: "tarumba-shop.firebasestorage.app",
-  messagingSenderId: "380892951034",
-  appId: "1:380892951034:web:f690f661fdc6d74549b443"
+  apiKey: "AIzaSyB9k2z1IANuthRZ4zRNmtLKZvqlTgr42bM",
+  authDomain: "pruebas-corona.firebaseapp.com",
+  projectId: "pruebas-corona",
+  storageBucket: "pruebas-corona.firebasestorage.app",
+  messagingSenderId: "511394813506",
+  appId: "1:511394813506:web:a949344cd416d5dc8b3fdb"
 };
-        
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'la-corona-app';
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
 
         const { useState, useEffect, useMemo } = React;
 
@@ -93,14 +93,26 @@
             Square: (p) => <IconBase {...p}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></IconBase>,
             List: (p) => <IconBase {...p}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></IconBase>,
             Home: (p) => <IconBase {...p}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></IconBase>,
-            CalendarCheck: (p) => <IconBase {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></IconBase>,
-            Google: (p) => <IconBase {...p}><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></IconBase>
+            CalendarCheck: (p) => <IconBase {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></IconBase>
         };
 
-        // --- SEED DATA (Solo para la primera carga) ---
-        const INITIAL_BROTHERS = [];
-        const INITIAL_EVENTS = [];
-        const INITIAL_TURNS = [];
+        // --- SEED DATA ---
+        const INITIAL_BROTHERS = [
+            { id: '1', name: 'Antonio Pérez', nickname: 'El Presi', email: 'admin@lacorona.com', points: 45, attendanceStreak: 12, role: 'junta' },
+            { id: '2', name: 'Francisco García', nickname: 'Curro', email: 'curro@ejemplo.com', points: 38, attendanceStreak: 5, role: 'hermano' },
+            { id: '3', name: 'José Manuel', nickname: 'El Chato', email: 'chato@ejemplo.com', points: 42, attendanceStreak: 8, role: 'hermano' },
+            { id: '4', name: 'Manuel Rivas', nickname: 'Lolo', email: 'lolo@ejemplo.com', points: 15, attendanceStreak: 0, role: 'hermano' },
+            { id: '5', name: 'Jesús M.', nickname: 'El Niño', email: 'jesus@ejemplo.com', points: 50, attendanceStreak: 15, role: 'junta' },
+        ];
+        const INITIAL_EVENTS = [
+            { id: 'e1', title: 'Junta de Navidad', date: '2023-12-23', time: '21:30', type: 'junta', deadline: '2023-12-21T22:00:00', attendees: ['1', '2', '3', '5'], guests: { '2': [{ name: 'Invitado 1', price: 35 }] }, menu: 'Entrantes variados, Solomillo al Whisky, Postre casero.', guestPrice: 35, closed: false },
+            { id: 'e2', title: 'Sábado de Romanos', date: '2024-03-23', time: '14:00', type: 'especial', deadline: '2024-03-20T22:00:00', attendees: ['1', '5'], guests: {}, guestPrice: 40, closed: false },
+        ];
+        const INITIAL_TURNS = [
+            { id: 't1', date: 'Viernes Noche', concept: 'El Cirineo', type: 'figura', brotherIds: ['2'] },
+            { id: 't2', date: 'Viernes Noche', concept: 'Judas', type: 'figura', brotherIds: ['5'] },
+            { id: 't3', date: '2023-12-23', concept: 'Junta Navidad', type: 'cocina', brotherIds: ['3', '1', '4'] },
+        ];
         const INITIAL_RESERVATIONS = [];
 
         // --- COMPONENTES AUXILIARES ---
@@ -120,10 +132,10 @@
         // --- APP PRINCIPAL ---
         function App() {
             // Firebase Auth Setup
-            const [user, setUser] = useState(null); // Firebase User
-            const [currentUser, setCurrentUser] = useState(null); // App "Brother" Profile
+            const [user, setUser] = useState(null); 
+            const [currentUser, setCurrentUser] = useState(null); 
             
-            // App Data (Fetched from Firebase)
+            // App Data
             const [brothers, setBrothers] = useState([]);
             const [events, setEvents] = useState([]);
             const [turns, setTurns] = useState([]);
@@ -132,6 +144,7 @@
             // UI State
             const [view, setView] = useState(() => localStorage.getItem('appView') || 'dashboard');
             const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [loginError, setLoginError] = useState('');
 
             const [notification, setNotification] = useState(null);
             const [isAdminAuth, setIsAdminAuth] = useState(false);
@@ -146,12 +159,10 @@
             const [editingTurnId, setEditingTurnId] = useState(null);
             const [turnFormData, setTurnFormData] = useState({ date: '', concept: '', type: 'figura', brotherIds: [] });
             
-            // Member Modal
             const [showMemberModal, setShowMemberModal] = useState(false);
             const [editingMemberId, setEditingMemberId] = useState(null);
             const [memberFormData, setMemberFormData] = useState({ name: '', nickname: '', email: '', role: 'hermano', points: 0, attendanceStreak: 0 });
 
-            // Reservation Modal
             const [showReservationModal, setShowReservationModal] = useState(false);
             const [reservationFormData, setReservationFormData] = useState({ date: '', reason: '' });
 
@@ -159,44 +170,44 @@
             const [confirmationModal, setConfirmationModal] = useState({ isOpen: false, message: '', onConfirm: () => {} });
             const [attendeeModal, setAttendeeModal] = useState({ isOpen: false, eventId: null });
 
-            // Persist View
             useEffect(() => {
                 localStorage.setItem('appView', view);
             }, [view]);
 
-            // 1. Initialize Auth State Listener
+            // 1. Fetch Data & Seed if Empty
             useEffect(() => {
-                const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-                    setUser(firebaseUser);
-                    if (!firebaseUser) {
-                        setIsLoggedIn(false);
-                        setCurrentUser(null);
-                    }
-                });
-                return () => unsubscribe();
-            }, []);
+                // IMPORTANT: Wait for user to be authenticated before attaching listeners
+                // to avoid "insufficient permissions" errors.
+                if (!user) return; 
 
-            // 2. Fetch Data
-            useEffect(() => {
-                if (!user) return;
-
-                // Paths
                 const brothersRef = collection(db, 'artifacts', appId, 'public', 'data', 'brothers');
                 const eventsRef = collection(db, 'artifacts', appId, 'public', 'data', 'events');
                 const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
                 const reservationsRef = collection(db, 'artifacts', appId, 'public', 'data', 'reservations');
 
-                // Subscriptions
+                const handleError = (error) => {
+                    console.log("Esperando datos o error de permisos...", error.code);
+                };
+
                 const unsubBrothers = onSnapshot(brothersRef, (snapshot) => {
-                    const fetchedBrothers = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-                    setBrothers(fetchedBrothers);
-                });
+                    if (snapshot.empty) {
+                         // Seeding con manejo de errores por si es readonly
+                        INITIAL_BROTHERS.forEach(b => setDoc(doc(brothersRef, b.id), b).catch(() => {}));
+                        INITIAL_EVENTS.forEach(e => setDoc(doc(eventsRef, e.id), e).catch(() => {}));
+                        INITIAL_TURNS.forEach(t => setDoc(doc(turnsRef, t.id), t).catch(() => {}));
+                        INITIAL_RESERVATIONS.forEach(r => setDoc(doc(reservationsRef, r.id), r).catch(() => {}));
+                        // Fallback local visual
+                        setBrothers(INITIAL_BROTHERS);
+                    } else {
+                        setBrothers(snapshot.docs.map(d => ({id: d.id, ...d.data()})));
+                    }
+                }, handleError);
 
                 const unsubEvents = onSnapshot(eventsRef, (snapshot) => {
                     const fetchedEvents = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
                     fetchedEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
                     setEvents(fetchedEvents);
-                });
+                }, handleError);
 
                 const unsubTurns = onSnapshot(turnsRef, (snapshot) => {
                     const fetchedTurns = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
@@ -207,13 +218,13 @@
                         return 0;
                     });
                     setTurns(fetchedTurns);
-                });
+                }, handleError);
 
                 const unsubReservations = onSnapshot(reservationsRef, (snapshot) => {
                     const fetchedReservations = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
                     fetchedReservations.sort((a, b) => new Date(a.date) - new Date(b.date));
                     setReservations(fetchedReservations);
-                });
+                }, handleError);
 
                 return () => {
                     unsubBrothers();
@@ -221,67 +232,78 @@
                     unsubTurns();
                     unsubReservations();
                 };
-            }, [user]);
+            }, [user]); // Add user as dependency
 
-            // 3. User Matching Logic (Auth + Brothers Data)
+            // 2. Auth Init
             useEffect(() => {
-                if (user) {
-                    const adminEmail = "aortizvillafranca@gmail.com";
-                    
-                    // Caso Especial: Administrador Principal
-                    if (user.email === adminEmail) {
-                        const existingAdmin = brothers.find(b => b.email === adminEmail);
-                        if (existingAdmin) {
-                            // Si existe pero no es junta, lo forzamos localmente por seguridad o podríamos actualizar DB
-                            setCurrentUser({ ...existingAdmin, role: 'junta' });
-                            setIsLoggedIn(true);
-                        } else if (brothers.length >= 0) { // Esperar a que brothers cargue (al menos vacío)
-                            // Crear perfil de admin si no existe
-                            const newAdmin = {
-                                name: user.displayName || "Administrador",
-                                nickname: "Admin",
-                                email: adminEmail,
-                                role: 'junta',
-                                points: 0,
-                                attendanceStreak: 0
-                            };
-                            // Usamos setDoc con el UID para consistencia si quisiéramos, pero addDoc está bien
-                            addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'brothers'), newAdmin)
-                                .then(() => showNotification("¡Bienvenido Admin! Perfil creado."));
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+                    if (firebaseUser) {
+                        if (brothers.length > 0) {
+                           checkWhitelist(firebaseUser);
+                        } else {
+                           setUser(firebaseUser); 
                         }
                     } else {
-                        // Caso Normal: Buscar por email
-                        const foundBrother = brothers.find(b => b.email === user.email);
-                        if (foundBrother) {
-                            setCurrentUser(foundBrother);
-                            setIsLoggedIn(true);
-                        } else if (brothers.length > 0) {
-                            // Usuario autenticado en Google pero no en la base de datos de hermanos
-                            showNotification("Tu email no está registrado como hermano.", "error");
-                            signOut(auth);
-                        }
+                        setIsLoggedIn(false);
+                        setCurrentUser(null);
+                        setUser(null);
                     }
-                }
-            }, [user, brothers]);
+                });
+                return () => unsubscribe();
+            }, [brothers]);
 
-            // Actions
-            const handleGoogleLogin = async () => {
-                const provider = new GoogleAuthProvider();
-                try {
-                    await signInWithPopup(auth, provider);
-                } catch (error) {
-                    console.error("Error login:", error);
-                    showNotification("Error al iniciar sesión con Google", "error");
+            const checkWhitelist = (firebaseUser) => {
+                // If user is anonymous or has no email, treat as anonymous access (e.g. for development/seeding)
+                if (!firebaseUser.email) {
+                    if(firebaseUser.isAnonymous) return; 
+                    setLoginError('Error: No se pudo obtener el email de tu cuenta.');
+                    signOut(auth);
+                    return;
+                }
+
+                const emailToCheck = firebaseUser.email.toLowerCase();
+                const brother = brothers.find(b => b.email && b.email.toLowerCase() === emailToCheck);
+                
+                if (brother) {
+                    setCurrentUser(brother);
+                    setIsLoggedIn(true);
+                    setLoginError('');
+                } else {
+                    setLoginError('Acceso denegado. Tu email no está registrado en el cuartel.');
+                    signOut(auth);
                 }
             };
 
-            const handleLogout = async () => {
-                await signOut(auth);
+            const handleGoogleLogin = async () => {
+                setLoginError('');
+                try {
+                    await signInWithPopup(auth, googleProvider);
+                } catch (error) {
+                    console.error("Error Google Auth:", error);
+                    if (error.code === 'auth/unauthorized-domain') {
+                        setLoginError('Error: Dominio no autorizado. Añade este dominio en Firebase Console (Authentication -> Settings).');
+                    } else if (error.code === 'auth/popup-closed-by-user') {
+                         setLoginError('Has cerrado la ventana de inicio de sesión.');
+                    } else {
+                        setLoginError(`Error al iniciar sesión: ${error.message}`);
+                    }
+                }
+            };
+
+            const handleLogout = () => {
+                signOut(auth);
                 setIsLoggedIn(false);
                 setCurrentUser(null);
                 setIsAdminAuth(false);
                 setAdminPin('');
-                localStorage.removeItem('savedBrotherId');
                 setView('dashboard');
                 localStorage.removeItem('appView');
             };
@@ -291,6 +313,8 @@
                 setTimeout(() => setNotification(null), 3000);
             };
 
+            // ... (Resto de funciones lógicas de Eventos, Turnos, Miembros igual que antes) ...
+            
             // --- Member Management Logic ---
             const openCreateMemberModal = () => {
                 setEditingMemberId(null);
@@ -406,21 +430,17 @@
                     showNotification("La fecha es obligatoria", 'error');
                     return;
                 }
-
-                // Check Conflicts
                 const eventConflict = events.find(e => e.date === reservationFormData.date);
                 if (eventConflict) {
                     showNotification(`Fecha ocupada por evento: ${eventConflict.title}`, 'error');
                     return;
                 }
-
                 const reservationConflict = reservations.find(r => r.date === reservationFormData.date);
                 if (reservationConflict) {
                     const brother = brothers.find(b => b.id === reservationConflict.brotherId);
                     showNotification(`Ya reservado por ${brother ? brother.nickname : 'un hermano'}`, 'error');
                     return;
                 }
-
                 try {
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reservations'), {
                         date: reservationFormData.date,
@@ -480,7 +500,6 @@
                     showNotification("Selecciona al menos un hermano", 'error');
                     return;
                 }
-
                 try {
                     if (editingTurnId) {
                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'turns', editingTurnId), turnFormData);
@@ -512,28 +531,22 @@
                 if (!currentUser) return;
                 const ev = events.find(e => e.id === eventId);
                 if (!ev) return;
-
                 const isAttending = ev.attendees.includes(currentUser.id);
                 let newAttendees = isAttending 
                     ? ev.attendees.filter(id => id !== currentUser.id)
                     : [...ev.attendees, currentUser.id];
-                
                 const newGuests = { ...ev.guests };
                 if (isAttending) delete newGuests[currentUser.id];
-
                 let pointsValue = 0;
                 if (ev.type === 'junta') pointsValue = 3;
                 else if (ev.type === 'cena') pointsValue = 1;
                 else if (ev.type === 'especial') pointsValue = 5;
-
                 const pointsChange = isAttending ? -pointsValue : pointsValue;
-
                 try {
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', eventId), {
                         attendees: newAttendees,
                         guests: newGuests
                     });
-
                     if (pointsChange !== 0) {
                         const newTotalPoints = (currentUser.points || 0) + pointsChange;
                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'brothers', currentUser.id), {
@@ -541,7 +554,6 @@
                         });
                         setCurrentUser(prev => ({ ...prev, points: newTotalPoints }));
                     }
-
                     showNotification(isAttending ? `Te has borrado (${-pointsChange} puntos)` : `¡Confirmado! (+${pointsChange} puntos)`);
                 } catch (e) {
                     console.error("Error actualizando asistencia:", e);
@@ -553,11 +565,9 @@
                 if (!guestModal.eventId || !currentUser) return;
                 const ev = events.find(e => e.id === guestModal.eventId);
                 if (!ev) return;
-
                 const currentGuests = ev.guests[currentUser.id] || [];
                 const newGuestName = `Invitado ${currentGuests.length + 1}`;
                 const newGuestList = [...currentGuests, { name: newGuestName, price: ev.guestPrice }];
-
                 try {
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', guestModal.eventId), {
                         [`guests.${currentUser.id}`]: newGuestList
@@ -607,7 +617,146 @@
                 );
             }, [turns, currentUser]);
 
-            // --- CALENDAR WIDGET ---
+            // --- RENDER MODALS ---
+            const renderReservationModal = () => {
+                if (!showReservationModal) return null;
+                return (
+                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+                            <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2"><Icons.Home size={20}/> Reservar Cuartel</h3>
+                            <div className="space-y-3">
+                                <label className="block text-sm font-medium text-stone-600">Fecha</label>
+                                <input type="date" className="w-full p-2 border rounded" value={reservationFormData.date} onChange={e => setReservationFormData({...reservationFormData, date: e.target.value})} />
+                                <label className="block text-sm font-medium text-stone-600">Motivo (Opcional)</label>
+                                <input type="text" placeholder="Ej: Cumpleaños, Comida familiar..." className="w-full p-2 border rounded" value={reservationFormData.reason} onChange={e => setReservationFormData({...reservationFormData, reason: e.target.value})} />
+                            </div>
+                            <div className="flex gap-2 mt-6">
+                                <button onClick={() => setShowReservationModal(false)} className="flex-1 py-2 text-stone-500 font-medium hover:bg-stone-50 rounded-lg">Cancelar</button>
+                                <button onClick={saveReservation} className="flex-1 py-2 bg-blue-400 hover:bg-blue-500 text-white rounded-lg font-bold shadow-md">Confirmar</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderGuestModal = () => {
+                if (!guestModal.isOpen) return null;
+                const ev = events.find(e => e.id === guestModal.eventId);
+                return (
+                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-bold text-stone-800 flex items-center gap-2"><Icons.UserPlus className="text-blue-500" size={20}/> Añadir Invitado</h3>
+                                <button onClick={() => setGuestModal({ isOpen: false, eventId: null })} className="text-stone-400 hover:text-stone-600"><Icons.X size={20}/></button>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 text-center">
+                                    <span className="text-xs font-bold text-stone-400 uppercase block mb-1">Precio por invitado</span>
+                                    <span className="text-4xl font-bold text-blue-600">{ev?.guestPrice} €</span>
+                                </div>
+                                <p className="text-center text-sm text-stone-500">¿Quieres añadir un invitado a tu cuenta?</p>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button onClick={() => setGuestModal({ isOpen: false, eventId: null })} className="flex-1 py-3 text-stone-500 font-medium hover:bg-stone-50 rounded-lg">Cancelar</button>
+                                <button onClick={handleAddGuest} className="flex-1 py-3 bg-blue-400 hover:bg-blue-500 text-white rounded-lg font-bold shadow-md">Sí, Añadir</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderConfirmationModal = () => {
+                if (!confirmationModal.isOpen) return null;
+                return (
+                    <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-xs shadow-2xl text-center">
+                            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.AlertTriangle size={24}/></div>
+                            <h3 className="text-lg font-bold text-stone-800 mb-2">Confirmar Acción</h3>
+                            <p className="text-stone-600 text-sm mb-6">{confirmationModal.message}</p>
+                            <div className="flex gap-2">
+                                <button onClick={() => setConfirmationModal({ isOpen: false, message: '', onConfirm: () => {} })} className="flex-1 py-2 text-stone-500 font-bold hover:bg-stone-50 rounded">Cancelar</button>
+                                <button onClick={confirmationModal.onConfirm} className="flex-1 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700">Confirmar</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderAttendeeModal = () => {
+                if (!attendeeModal.isOpen || !attendeeModal.eventId) return null;
+                const ev = events.find(e => e.id === attendeeModal.eventId);
+                if (!ev) return null;
+                const attendingBrothers = brothers.filter(b => ev.attendees.includes(b.id));
+                const guestSummary = Object.entries(ev.guests).map(([broId, guestList]) => {
+                    const bro = brothers.find(b => b.id === broId);
+                    return { brotherName: bro?.nickname || 'Desconocido', count: guestList.length };
+                }).filter(item => item.count > 0);
+
+                return (
+                    <div className="fixed inset-0 bg-black/60 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-t-2xl sm:rounded-xl w-full max-w-sm h-[80vh] sm:h-auto sm:max-h-[80vh] shadow-2xl flex flex-col overflow-hidden">
+                            <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50">
+                                <div><h3 className="font-bold text-stone-800 text-lg">Lista de Asistencia</h3><p className="text-xs text-stone-500">{ev.title}</p></div>
+                                <button onClick={() => setAttendeeModal({ isOpen: false, eventId: null })} className="p-2 bg-white rounded-full text-stone-400 hover:text-stone-600 shadow-sm"><Icons.X size={20}/></button>
+                            </div>
+                            <div className="overflow-y-auto p-4 space-y-6 flex-1">
+                                <div>
+                                    <h4 className="text-xs font-bold text-stone-400 uppercase mb-3 flex items-center gap-2"><Icons.UserCircle size={14}/> Hermanos ({attendingBrothers.length})</h4>
+                                    {attendingBrothers.length > 0 ? (
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {attendingBrothers.map(b => (
+                                                <div key={b.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-stone-50">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${b.role === 'junta' ? 'bg-yellow-100 text-yellow-700' : 'bg-stone-200 text-stone-600'}`}>{b.nickname.substring(0, 2).toUpperCase()}</div>
+                                                    <span className="font-medium text-stone-700">{b.nickname}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : <p className="text-sm text-stone-400 italic pl-2">Ningún hermano apuntado aún.</p>}
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-bold text-stone-400 uppercase mb-3 flex items-center gap-2"><Icons.UserPlus size={14}/> Invitados ({Object.values(ev.guests).reduce((acc, curr) => acc + curr.length, 0)})</h4>
+                                    {guestSummary.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {guestSummary.map((item, idx) => (
+                                                <div key={idx} className="flex justify-between items-center p-3 bg-stone-50 rounded-lg border border-stone-100">
+                                                    <span className="text-sm text-stone-600">Invitados de <span className="font-bold text-stone-800">{item.brotherName}</span></span>
+                                                    <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{item.count}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : <p className="text-sm text-stone-400 italic pl-2">No hay invitados en la lista.</p>}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderMemberModal = () => {
+                if (!showMemberModal) return null;
+                return (
+                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+                            <h3 className="text-lg font-bold text-stone-800 mb-4">{editingMemberId ? 'Editar Hermano' : 'Añadir Hermano'}</h3>
+                            <div className="space-y-3">
+                                <input type="text" placeholder="Nombre completo" className="w-full p-2 border rounded" value={memberFormData.name} onChange={e => setMemberFormData({...memberFormData, name: e.target.value})}/>
+                                <input type="text" placeholder="Apodo (ej: Curro)" className="w-full p-2 border rounded" value={memberFormData.nickname} onChange={e => setMemberFormData({...memberFormData, nickname: e.target.value})}/>
+                                <input type="email" placeholder="Email (Gmail)" className="w-full p-2 border rounded" value={memberFormData.email} onChange={e => setMemberFormData({...memberFormData, email: e.target.value})}/>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <select className="w-full p-2 border rounded" value={memberFormData.role} onChange={e => setMemberFormData({...memberFormData, role: e.target.value})}><option value="hermano">Hermano</option><option value="junta">Junta</option></select>
+                                    <input type="number" placeholder="Puntos" className="w-full p-2 border rounded" value={memberFormData.points} onChange={e => setMemberFormData({...memberFormData, points: Number(e.target.value)})}/>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 mt-6">
+                                <button onClick={() => setShowMemberModal(false)} className="flex-1 py-2 text-stone-500">Cancelar</button>
+                                <button onClick={saveMember} className="flex-1 py-2 bg-blue-400 text-white rounded font-bold">Guardar</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // --- VISTAS ---
             const renderCalendarWidget = () => {
                 const year = calendarDate.getFullYear();
                 const month = calendarDate.getMonth();
@@ -651,8 +800,8 @@
                                 <div className="text-[10px] leading-tight text-blue-800 font-bold mt-1 truncate">
                                     {event.title}
                                 </div>
-                           );
-                           onClick = () => showNotification("Día reservado por la hermandad (Evento Oficial)", "error");
+                            );
+                            onClick = () => showNotification("Día reservado por la hermandad (Evento Oficial)", "error");
                         } else if (reservation) {
                             const isMine = currentUser.id === reservation.brotherId;
                             cellClass = isMine ? "bg-indigo-50 border-indigo-200 cursor-pointer" : "bg-orange-50 border-orange-200 cursor-pointer";
@@ -688,7 +837,7 @@
                             <button onClick={() => changeMonth(1)} className="p-1 hover:bg-stone-100 rounded-full"><Icons.ChevronRight size={20}/></button>
                         </div>
                         <div className="grid grid-cols-7 gap-1 mb-2 text-center">
-                           {['L','M','X','J','V','S','D'].map(day => <span key={day} className="text-xs font-bold text-stone-400">{day}</span>)}
+                            {['L','M','X','J','V','S','D'].map(day => <span key={day} className="text-xs font-bold text-stone-400">{day}</span>)}
                         </div>
                         <div className="grid grid-cols-7 gap-1">
                             {renderDays()}
@@ -702,164 +851,29 @@
                 );
             };
 
-            // --- RENDER MODALS ---
-            const renderReservationModal = () => {
-                if (!showReservationModal) return null;
-                return (
-                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
-                            <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2"><Icons.Home size={20}/> Reservar Cuartel</h3>
-                            <div className="space-y-3">
-                                <label className="block text-sm font-medium text-stone-600">Fecha</label>
-                                <input type="date" className="w-full p-2 border rounded" value={reservationFormData.date} onChange={e => setReservationFormData({...reservationFormData, date: e.target.value})} />
-                                <label className="block text-sm font-medium text-stone-600">Motivo (Opcional)</label>
-                                <input type="text" placeholder="Ej: Cumpleaños, Comida familiar..." className="w-full p-2 border rounded" value={reservationFormData.reason} onChange={e => setReservationFormData({...reservationFormData, reason: e.target.value})} />
-                            </div>
-                            <div className="flex gap-2 mt-6">
-                                <button onClick={() => setShowReservationModal(false)} className="flex-1 py-2 text-stone-500 font-medium hover:bg-stone-50 rounded-lg">Cancelar</button>
-                                <button onClick={saveReservation} className="flex-1 py-2 bg-blue-400 hover:bg-blue-500 text-white rounded-lg font-bold shadow-md">Confirmar</button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const renderGuestModal = () => {
-                if (!guestModal.isOpen) return null;
-                const ev = events.find(e => e.id === guestModal.eventId);
-                return (
-                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-bold text-stone-800 flex items-center gap-2"><Icons.UserPlus className="text-blue-500" size={20}/> Añadir Invitado</h3>
-                                <button onClick={() => setGuestModal({ isOpen: false, eventId: null })} className="text-stone-400 hover:text-stone-600"><Icons.X size={20}/></button>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 text-center">
-                                    <span className="text-xs font-bold text-stone-400 uppercase block mb-1">Precio por invitado</span>
-                                    <span className="text-4xl font-bold text-blue-600">{ev?.guestPrice} €</span>
-                                </div>
-                                <p className="text-center text-sm text-stone-500">¿Quieres añadir un invitado a tu cuenta?</p>
-                           </div>
-                            <div className="flex gap-3 mt-6">
-                                <button onClick={() => setGuestModal({ isOpen: false, eventId: null })} className="flex-1 py-3 text-stone-500 font-medium hover:bg-stone-50 rounded-lg">Cancelar</button>
-                                <button onClick={handleAddGuest} className="flex-1 py-3 bg-blue-400 hover:bg-blue-500 text-white rounded-lg font-bold shadow-md">Sí, Añadir</button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const renderConfirmationModal = () => {
-                if (!confirmationModal.isOpen) return null;
-                return (
-                    <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white rounded-xl p-6 w-full max-w-xs shadow-2xl text-center">
-                            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.AlertTriangle size={24}/></div>
-                            <h3 className="text-lg font-bold text-stone-800 mb-2">Confirmar Acción</h3>
-                            <p className="text-stone-600 text-sm mb-6">{confirmationModal.message}</p>
-                            <div className="flex gap-2">
-                                <button onClick={() => setConfirmationModal({ isOpen: false, message: '', onConfirm: () => {} })} className="flex-1 py-2 text-stone-500 font-bold hover:bg-stone-50 rounded">Cancelar</button>
-                                <button onClick={confirmationModal.onConfirm} className="flex-1 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700">Confirmar</button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const renderAttendeeModal = () => {
-                if (!attendeeModal.isOpen || !attendeeModal.eventId) return null;
-                const ev = events.find(e => e.id === attendeeModal.eventId);
-                if (!ev) return null;
-                const attendingBrothers = brothers.filter(b => ev.attendees.includes(b.id));
-                const guestSummary = Object.entries(ev.guests).map(([broId, guestList]) => {
-                    const bro = brothers.find(b => b.id === broId);
-                    return { brotherName: bro?.nickname || 'Desconocido', count: guestList.length };
-                }).filter(item => item.count > 0);
-
-                return (
-                    <div className="fixed inset-0 bg-black/60 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white rounded-t-2xl sm:rounded-xl w-full max-w-sm h-[80vh] sm:h-auto sm:max-h-[80vh] shadow-2xl flex flex-col overflow-hidden">
-                            <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50">
-                               <div><h3 className="font-bold text-stone-800 text-lg">Lista de Asistencia</h3><p className="text-xs text-stone-500">{ev.title}</p></div>
-                                <button onClick={() => setAttendeeModal({ isOpen: false, eventId: null })} className="p-2 bg-white rounded-full text-stone-400 hover:text-stone-600 shadow-sm"><Icons.X size={20}/></button>
-                            </div>
-                            <div className="overflow-y-auto p-4 space-y-6 flex-1">
-                                <div>
-                                    <h4 className="text-xs font-bold text-stone-400 uppercase mb-3 flex items-center gap-2"><Icons.UserCircle size={14}/> Hermanos ({attendingBrothers.length})</h4>
-                                   {attendingBrothers.length > 0 ? (
-                                        <div className="grid grid-cols-1 gap-2">
-                                           {attendingBrothers.map(b => (
-                                                <div key={b.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-stone-50">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${b.role === 'junta' ? 'bg-yellow-100 text-yellow-700' : 'bg-stone-200 text-stone-600'}`}>{b.nickname.substring(0, 2).toUpperCase()}</div>
-                                                    <span className="font-medium text-stone-700">{b.nickname}</span>
-                                                </div>
-                                           ))}
-                                        </div>
-                                    ) : <p className="text-sm text-stone-400 italic pl-2">Ningún hermano apuntado aún.</p>}
-                                </div>
-                                <div>
-                                    <h4 className="text-xs font-bold text-stone-400 uppercase mb-3 flex items-center gap-2"><Icons.UserPlus size={14}/> Invitados ({Object.values(ev.guests).reduce((acc, curr) => acc + curr.length, 0)})</h4>
-                                   {guestSummary.length > 0 ? (
-                                        <div className="space-y-2">
-                                           {guestSummary.map((item, idx) => (
-                                                <div key={idx} className="flex justify-between items-center p-3 bg-stone-50 rounded-lg border border-stone-100">
-                                                    <span className="text-sm text-stone-600">Invitados de <span className="font-bold text-stone-800">{item.brotherName}</span></span>
-                                                    <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{item.count}</span>
-                                                </div>
-                                           ))}
-                                        </div>
-                                    ) : <p className="text-sm text-stone-400 italic pl-2">No hay invitados en la lista.</p>}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const renderMemberModal = () => {
-                if (!showMemberModal) return null;
-                return (
-                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
-                            <h3 className="text-lg font-bold text-stone-800 mb-4">{editingMemberId ? 'Editar Hermano' : 'Añadir Hermano'}</h3>
-                            <div className="space-y-3">
-                                <input type="text" placeholder="Nombre completo" className="w-full p-2 border rounded" value={memberFormData.name} onChange={e => setMemberFormData({...memberFormData, name: e.target.value})}/>
-                                <input type="text" placeholder="Apodo (ej: Curro)" className="w-full p-2 border rounded" value={memberFormData.nickname} onChange={e => setMemberFormData({...memberFormData, nickname: e.target.value})}/>
-                                <input type="email" placeholder="Email Google (ej: usuario@gmail.com)" className="w-full p-2 border rounded" value={memberFormData.email || ''} onChange={e => setMemberFormData({...memberFormData, email: e.target.value})}/>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <select className="w-full p-2 border rounded" value={memberFormData.role} onChange={e => setMemberFormData({...memberFormData, role: e.target.value})}><option value="hermano">Hermano</option><option value="junta">Junta</option></select>
-                                    <input type="number" placeholder="Puntos" className="w-full p-2 border rounded" value={memberFormData.points} onChange={e => setMemberFormData({...memberFormData, points: Number(e.target.value)})}/>
-                                </div>
-                            </div>
-                            <div className="flex gap-2 mt-6">
-                                <button onClick={() => setShowMemberModal(false)} className="flex-1 py-2 text-stone-500">Cancelar</button>
-                                <button onClick={saveMember} className="flex-1 py-2 bg-blue-400 text-white rounded font-bold">Guardar</button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            // --- VISTAS ---
             if (!isLoggedIn) {
                 return (
                     <div className="min-h-screen bg-blue-400 flex flex-col items-center justify-center p-6 relative overflow-hidden">
                         <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #fbbf24 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
-                        <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 z-10 animate-fade-in flex flex-col items-center">
-                            <div className="text-center mb-8">
+                        <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 z-10 animate-fade-in text-center">
+                            <div className="mb-8">
                                 <h1 className="text-3xl font-serif font-bold text-blue-600 mb-2">La Corona</h1>
                                 <p className="text-stone-500 uppercase tracking-widest text-xs font-bold">Los Mitigadores de Jesús</p>
                             </div>
-                            
-                            <div className="w-full space-y-4">
-                                <button onClick={handleGoogleLogin} className="w-full bg-white border border-stone-200 hover:border-blue-300 hover:bg-blue-50 text-stone-700 font-bold py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-3">
-                                    <div className="bg-white p-1 rounded-full"><Icons.Google size={20}/></div>
-                                    <span>Iniciar sesión con Google</span>
-                                </button>
-                                <p className="text-xs text-center text-stone-400 max-w-[200px] mx-auto leading-relaxed">
-                                    Acceso exclusivo para hermanos registrados. Contacta con la Junta si no puedes entrar.
-                                </p>
+                            <button onClick={handleGoogleLogin} className="w-full bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 font-bold py-3 rounded-xl flex items-center justify-center gap-3 shadow-sm transition-all transform hover:scale-[1.02]">
+                                <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                                Entrar con Google
+                            </button>
+                            {loginError && <p className="mt-4 text-red-500 text-sm bg-red-50 p-2 rounded border border-red-100">{loginError}</p>}
+                            <div className="mt-6 border-t border-stone-100 pt-4">
+                                <p className="text-xs text-stone-400 mb-2">Solo para pruebas (Si no tienes Google configurado):</p>
+                                <div className="grid grid-cols-1 gap-2 max-h-[150px] overflow-y-auto no-scrollbar">
+                                    {brothers.map(bro => (
+                                        <button key={bro.id} onClick={() => { setCurrentUser(bro); setIsLoggedIn(true); }} className="text-xs bg-stone-50 border border-stone-200 p-2 rounded text-left hover:bg-stone-100">
+                                            {bro.nickname}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -869,15 +883,14 @@
             const renderDashboardView = () => (
                 <div className="space-y-6 pb-20 animate-fade-in">
                     <div className="relative h-48 bg-blue-400 rounded-b-3xl shadow-xl overflow-hidden">
-                        {/* Botón de Cerrar Sesión (Visible para todos) */}
-                       <button onClick={handleLogout} className="absolute top-4 right-4 bg-black/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-black/30 transition-colors z-20" title="Cerrar Sesión">
+                        <button onClick={handleLogout} className="absolute top-4 right-4 bg-black/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-black/30 transition-colors z-20" title="Cerrar Sesión">
                             <Icons.LogOut size={20} />
                         </button>
                         
                         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-blue-900/90 flex flex-col justify-end p-6">
                             <div className="flex justify-between items-end">
-                               <div><p className="text-yellow-500/80 text-xs font-bold uppercase tracking-wider mb-1">Bienvenido</p><h1 className="text-3xl font-serif text-white font-bold drop-shadow-md">{currentUser.nickname}</h1></div>
-                               {currentUser.role === 'junta' && <span className="bg-yellow-500 text-blue-900 text-[10px] font-bold px-2 py-1 rounded uppercase">Directiva</span>}
+                                <div><p className="text-yellow-500/80 text-xs font-bold uppercase tracking-wider mb-1">Bienvenido</p><h1 className="text-3xl font-serif text-white font-bold drop-shadow-md">{currentUser.nickname}</h1></div>
+                                {currentUser.role === 'junta' && <span className="bg-yellow-500 text-blue-900 text-[10px] font-bold px-2 py-1 rounded uppercase">Directiva</span>}
                             </div>
                         </div>
                     </div>
@@ -892,8 +905,8 @@
                                 <div className="flex gap-2">
                                     <button onClick={() => toggleAttendance(nextEvent.id)} className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all flex justify-center items-center gap-2 ${nextEvent.attendees.includes(currentUser.id) ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-blue-400 text-white shadow-md hover:bg-blue-500'}`}>
                                         {nextEvent.attendees.includes(currentUser.id) ? <><Icons.Check size={18}/> Asisto</> : <>¡Me apunto!</>}
-                                   </button>
-                                   {nextEvent.attendees.includes(currentUser.id) && <button onClick={() => openGuestModalForEvent(nextEvent.id)} className="bg-stone-100 text-stone-700 px-4 rounded-lg font-bold border border-stone-200 hover:bg-stone-200"><Icons.UserPlus size={18}/></button>}
+                                    </button>
+                                    {nextEvent.attendees.includes(currentUser.id) && <button onClick={() => openGuestModalForEvent(nextEvent.id)} className="bg-stone-100 text-stone-700 px-4 rounded-lg font-bold border border-stone-200 hover:bg-stone-200"><Icons.UserPlus size={18}/></button>}
                                 </div>
                                 <div className="mt-3 text-xs text-stone-500 text-center border-t border-stone-100 pt-2">{nextEvent.attendees.length} hermanos confirmados • Cierre: Jueves 22:00</div>
                             </div>
@@ -907,14 +920,14 @@
                         </div>
                         <div onClick={() => setView('turnos')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 active:scale-95 transition-transform cursor-pointer">
                             <div className="flex justify-between items-center mb-2">
-                               <Icons.ChefHat className="text-orange-600" size={20} />
+                                <Icons.ChefHat className="text-orange-600" size={20} />
                                 <span className="text-xs font-bold text-stone-400">COCINA</span>
                             </div>
                             {nextKitchenTurn ? (
                                 <>
                                     <div className="text-lg font-bold text-stone-800 leading-tight">
                                         {new Date(nextKitchenTurn.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).toUpperCase()}
-                                   </div>
+                                    </div>
                                     <p className="text-xs text-stone-500 mt-1 truncate">{nextKitchenTurn.concept}</p>
                                 </>
                             ) : (
@@ -928,8 +941,8 @@
                     <div className="px-4">
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
                             <div className="bg-yellow-100 p-2 rounded-full h-fit"><Icons.Award className="text-yellow-700" size={20}/></div>
-                            <div><h3 className="font-bold text-stone-800 text-sm">Recordatorio de Tesorería</h3><p className="text-stone-600 text-xs mt-1">Recuerda que a final de mes Carmona hará cobro del recibo del mes.</p></div>
-                       </div>
+                            <div><h3 className="font-bold text-stone-800 text-sm">Recordatorio de Tesorería</h3><p className="text-stone-600 text-xs mt-1">Recuerda que este sábado se paga la cuota extraordinaria de Navidad.</p></div>
+                        </div>
                     </div>
                 </div>
             );
@@ -940,10 +953,7 @@
                         <h2 className="text-2xl font-serif font-bold text-blue-600">Agenda</h2>
                         <button onClick={() => openReservationModal()} className="text-xs bg-stone-900 text-white px-3 py-1.5 rounded-full font-bold shadow-sm flex items-center gap-1">Reservar Cuartel</button>
                     </div>
-                    
                     {renderCalendarWidget()}
-
-                    {/* Eventos Oficiales */}
                     {events.map(ev => {
                         const isAttending = ev.attendees.includes(currentUser.id);
                         const myGuests = ev.guests[currentUser.id] || [];
@@ -955,18 +965,18 @@
                             <div key={ev.id} className={`bg-white rounded-xl shadow-sm border ${isAttending ? 'border-l-4 border-l-green-500' : 'border-stone-200'}`}>
                                 <div className="p-4">
                                     <div className="flex justify-between items-start">
-                                       <div><h3 className="font-bold text-lg text-stone-800">{ev.title}</h3><p className="text-stone-500 text-sm flex items-center gap-2"><Icons.Calendar size={14}/> {new Date(ev.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long'})}</p><p className="text-stone-500 text-sm flex items-center gap-2 mt-1"><Icons.Utensils size={14}/> {ev.menu ? 'Menú cerrado' : 'Menú a la carta'}</p></div>
-                                       {isClosed && <span className="text-xs bg-stone-200 text-stone-600 px-2 py-1 rounded font-bold">CERRADA</span>}
-                                   </div>
+                                        <div><h3 className="font-bold text-lg text-stone-800">{ev.title}</h3><p className="text-stone-500 text-sm flex items-center gap-2"><Icons.Calendar size={14}/> {new Date(ev.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long'})}</p><p className="text-stone-500 text-sm flex items-center gap-2 mt-1"><Icons.Utensils size={14}/> {ev.menu ? 'Menú cerrado' : 'Menú a la carta'}</p></div>
+                                        {isClosed && <span className="text-xs bg-stone-200 text-stone-600 px-2 py-1 rounded font-bold">CERRADA</span>}
+                                    </div>
                                     {!isClosed && <div className="mt-4 flex gap-3"><button onClick={() => toggleAttendance(ev.id)} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${isAttending ? 'bg-red-50 text-red-700 border border-red-100 hover:bg-red-100' : 'bg-stone-900 text-white hover:bg-stone-800'}`}>{isAttending ? 'Me caigo de la lista' : 'Me apunto'}</button></div>}
-                                   {isAttending && !isClosed && (
+                                    {isAttending && !isClosed && (
                                         <div className="mt-4 pt-4 border-t border-dashed border-stone-200">
-                                           <div className="flex justify-between items-center mb-2"><span className="text-sm font-bold text-stone-700">Invitados ({myGuests.length})</span><button onClick={() => openGuestModalForEvent(ev.id)} className="bg-stone-100 hover:bg-stone-200 text-stone-700 p-2 rounded-full flex items-center justify-center font-bold transition-colors shadow-sm" title="Añadir invitado"><Icons.Plus size={16}/></button></div>
-                                           {myGuests.length > 0 ? (
+                                            <div className="flex justify-between items-center mb-2"><span className="text-sm font-bold text-stone-700">Invitados ({myGuests.length})</span><button onClick={() => openGuestModalForEvent(ev.id)} className="bg-stone-100 hover:bg-stone-200 text-stone-700 p-2 rounded-full flex items-center justify-center font-bold transition-colors shadow-sm" title="Añadir invitado"><Icons.Plus size={16}/></button></div>
+                                            {myGuests.length > 0 ? (
                                                 <div className="space-y-2 mt-2">
-                                                   {myGuests.map((g, idx) => (
-                                                       <div key={idx} className="flex justify-between items-center bg-stone-50 p-2 rounded text-sm border border-stone-100"><span className="text-stone-700 font-medium">{g.name}</span><div className="flex items-center gap-2"><span className="font-mono text-stone-500 text-xs bg-white px-2 py-0.5 rounded border border-stone-200">{g.price}€</span><button onClick={() => updateGuests(ev.id, myGuests.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded"><Icons.X size={14}/></button></div></div>
-                                                   ))}
+                                                    {myGuests.map((g, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center bg-stone-50 p-2 rounded text-sm border border-stone-100"><span className="text-stone-700 font-medium">{g.name}</span><div className="flex items-center gap-2"><span className="font-mono text-stone-500 text-xs bg-white px-2 py-0.5 rounded border border-stone-200">{g.price}€</span><button onClick={() => updateGuests(ev.id, myGuests.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded"><Icons.X size={14}/></button></div></div>
+                                                    ))}
                                                 </div>
                                             ) : <p className="text-xs text-stone-400 italic">No tienes invitados para este evento.</p>}
                                         </div>
@@ -976,34 +986,24 @@
                                         <div className="bg-white border border-stone-200 px-2 py-0.5 rounded text-xs font-bold text-stone-500 shadow-sm group-hover:border-stone-300">Total: {totalDiners}</div>
                                     </div>
                                 </div>
-                           </div>
-                       );
-                   })}
-
-                   {/* Reservas Particulares */}
+                            </div>
+                        );
+                    })}
                     <div className="pt-6">
                         <h3 className="text-lg font-bold text-stone-500 mb-3 flex items-center gap-2"><Icons.Home size={18} /> Reservas Particulares</h3>
                         {reservations.length > 0 ? (
                             <div className="space-y-3">
-                               {reservations.map(res => {
+                                {reservations.map(res => {
                                     const brother = brothers.find(b => b.id === res.brotherId);
                                     const isMine = currentUser.id === res.brotherId;
                                     return (
                                         <div key={res.id} className="bg-stone-50 rounded-xl p-3 border border-stone-200 flex justify-between items-center">
-                                           <div>
-                                               <div className="font-bold text-stone-800 text-sm flex items-center gap-2">
-                                                   <Icons.CalendarCheck size={14} className="text-stone-400"/>
-                                                   {new Date(res.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                               </div>
-                                               <div className="text-xs text-stone-500 mt-1">
-                                                   <span className="font-bold">{brother ? brother.nickname : 'Un hermano'}</span>
-                                                   {res.reason && <span className="italic"> - {res.reason}</span>}
-                                               </div>
-                                           </div>
-                                           {(isMine || currentUser.role === 'junta') && (
-                                               <button onClick={() => requestDeleteReservation(res.id, res.brotherId)} className="p-2 text-red-400 hover:text-red-600"><Icons.Trash2 size={16}/></button>
-                                            )}
-                                       </div>
+                                            <div>
+                                                <div className="font-bold text-stone-800 text-sm flex items-center gap-2"><Icons.CalendarCheck size={14} className="text-stone-400"/>{new Date(res.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                                                <div className="text-xs text-stone-500 mt-1"><span className="font-bold">{brother ? brother.nickname : 'Un hermano'}</span>{res.reason && <span className="italic"> - {res.reason}</span>}</div>
+                                            </div>
+                                            {(isMine || currentUser.role === 'junta') && (<button onClick={() => requestDeleteReservation(res.id, res.brotherId)} className="p-2 text-red-400 hover:text-red-600"><Icons.Trash2 size={16}/></button>)}
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -1020,12 +1020,12 @@
                         <div className="flex justify-between text-xs text-stone-400 mt-2 px-2"><span>ENE</span><span>FEB</span><span>MAR</span><span>ABR</span><span>MAY</span><span>JUN</span></div>
                     </div>
                     <div className="space-y-3">
-                       {sortedRanking.map((bro, index) => (
-                           <div key={bro.id} className={`flex items-center gap-4 p-3 rounded-xl border ${bro.id === currentUser.id ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-stone-100'}`}>
+                        {sortedRanking.map((bro, index) => (
+                            <div key={bro.id} className={`flex items-center gap-4 p-3 rounded-xl border ${bro.id === currentUser.id ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-stone-100'}`}>
                                 <div className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${index === 0 ? 'bg-yellow-400 text-white' : index === 1 ? 'bg-stone-300 text-white' : index === 2 ? 'bg-orange-400 text-white' : 'bg-stone-100 text-stone-500'}`}>{index + 1}</div>
                                 <div className="flex-1"><div className="flex items-center gap-2"><span className="font-bold text-stone-800">{bro.nickname}</span></div><div className="w-full bg-stone-100 h-1.5 rounded-full mt-1 overflow-hidden"><div className="bg-purple-600 h-full rounded-full" style={{ width: `${Math.min(bro.points, 100)}%`}}></div></div></div>
                                 <div className="text-right"><span className="block text-lg font-bold text-blue-600">{bro.points}</span><span className="text-[10px] text-stone-400 uppercase">Puntos</span></div>
-                           </div>
+                            </div>
                         ))}
                     </div>
                 </div>
@@ -1039,7 +1039,7 @@
                         <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
                             <table className="w-full text-sm text-left"><thead className="bg-blue-50 text-blue-700"><tr><th className="p-3">Día</th><th className="p-3">Figura</th><th className="p-3">Hermano</th></tr></thead>
                                 <tbody className="divide-y divide-stone-100">
-                                   {turns.filter(t => t.type === 'figura').map(turn => (<tr key={turn.id}><td className="p-3 font-bold text-blue-600">{turn.date}</td><td className="p-3 font-medium text-stone-800">{turn.concept}</td><td className="p-3 text-stone-600">{brothers.find(b => b.id === turn.brotherIds[0])?.nickname}</td></tr>))}
+                                    {turns.filter(t => t.type === 'figura').map(turn => (<tr key={turn.id}><td className="p-3 font-bold text-blue-600">{turn.date}</td><td className="p-3 font-medium text-stone-800">{turn.concept}</td><td className="p-3 text-stone-600">{brothers.find(b => b.id === turn.brotherIds[0])?.nickname}</td></tr>))}
                                 </tbody>
                             </table>
                             {turns.filter(t => t.type === 'figura').length === 0 && <p className="p-4 text-center text-xs text-stone-400">No hay turnos asignados</p>}
@@ -1068,7 +1068,7 @@
                             <div className="bg-stone-100 p-4 rounded-full mb-4"><Icons.Lock className="text-stone-400" size={32}/></div>
                             <h2 className="text-xl font-bold text-stone-800 mb-2">Zona Junta Directiva</h2>
                             <p className="text-sm text-stone-500 mb-6 text-center">Introduce el PIN maestro para gestionar el cuartel.</p>
-                           <input type="password" maxLength={4} value={adminPin} onChange={(e) => setAdminPin(e.target.value)} className="text-center text-3xl tracking-[1em] w-48 font-bold border-b-2 border-stone-300 focus:border-blue-400 focus:outline-none mb-6 bg-transparent" placeholder="••••"/>
+                            <input type="password" maxLength={4} value={adminPin} onChange={(e) => setAdminPin(e.target.value)} className="text-center text-3xl tracking-[1em] w-48 font-bold border-b-2 border-stone-300 focus:border-blue-400 focus:outline-none mb-6 bg-transparent" placeholder="••••"/>
                             <button onClick={() => { if (adminPin === '1660') { setIsAdminAuth(true); showNotification("Acceso concedido", 'success'); } else { showNotification("PIN incorrecto", 'error'); setAdminPin(''); } }} className="bg-blue-400 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-bold w-full max-w-xs">Entrar</button>
                             <button onClick={handleLogout} className="mt-12 text-stone-400 text-sm flex items-center gap-2 border border-stone-200 px-4 py-2 rounded-full"><Icons.LogOut size={16}/> Cerrar Sesión</button>
                         </div>
@@ -1082,13 +1082,13 @@
                                 <div className="bg-white rounded-xl p-6 w-full max-w-sm">
                                     <h3 className="text-lg font-bold text-stone-800 mb-4">{editingEventId ? 'Editar Evento' : 'Crear Nuevo Evento'}</h3>
                                     <div className="space-y-3">
-                                       <input type="text" placeholder="Título" className="w-full p-2 border rounded" value={eventFormData.title} onChange={e => setEventFormData({...eventFormData, title: e.target.value})} autoFocus/>
+                                        <input type="text" placeholder="Título" className="w-full p-2 border rounded" value={eventFormData.title} onChange={e => setEventFormData({...eventFormData, title: e.target.value})} autoFocus/>
                                         <div className="grid grid-cols-2 gap-2"><input type="date" className="w-full p-2 border rounded" value={eventFormData.date} onChange={e => setEventFormData({...eventFormData, date: e.target.value})}/><input type="time" className="w-full p-2 border rounded" value={eventFormData.time} onChange={e => setEventFormData({...eventFormData, time: e.target.value})}/></div>
                                         <div className="grid grid-cols-2 gap-2">
-                                           <select className="w-full p-2 border rounded" value={eventFormData.type} onChange={e => setEventFormData({...eventFormData, type: e.target.value})}><option value="cena">Cena Ordinaria</option><option value="junta">Junta General</option><option value="especial">Evento Especial</option></select>
-                                           <div className="relative"><input type="number" placeholder="Precio Inv." className="w-full p-2 border rounded pl-6" value={eventFormData.guestPrice} onChange={e => setEventFormData({...eventFormData, guestPrice: e.target.value})}/><span className="absolute left-2 top-2 text-stone-400">€</span></div>
-                                       </div>
-                                   </div>
+                                            <select className="w-full p-2 border rounded" value={eventFormData.type} onChange={e => setEventFormData({...eventFormData, type: e.target.value})}><option value="cena">Cena Ordinaria</option><option value="junta">Junta General</option><option value="especial">Evento Especial</option></select>
+                                            <div className="relative"><input type="number" placeholder="Precio Inv." className="w-full p-2 border rounded pl-6" value={eventFormData.guestPrice} onChange={e => setEventFormData({...eventFormData, guestPrice: e.target.value})}/><span className="absolute left-2 top-2 text-stone-400">€</span></div>
+                                        </div>
+                                    </div>
                                     <div className="flex gap-2 mt-6"><button onClick={() => setShowEventModal(false)} className="flex-1 py-2 text-stone-500">Cancelar</button><button onClick={saveEvent} className="flex-1 py-2 bg-blue-400 text-white rounded font-bold">{editingEventId ? 'Guardar' : 'Crear'}</button></div>
                                 </div>
                             </div>
@@ -1099,61 +1099,36 @@
                                     <h3 className="text-lg font-bold text-stone-800 mb-4 shrink-0">{editingTurnId ? 'Editar Turno' : 'Asignar Nuevo Turno'}</h3>
                                     <div className="space-y-3 shrink-0 mb-4">
                                         <div className="flex gap-2 items-center bg-stone-100 p-1 rounded-lg">
-                                           <button onClick={() => setTurnFormData({...turnFormData, type: 'figura', date: ''})} className={`flex-1 py-1.5 rounded-md text-sm font-bold ${turnFormData.type === 'figura' ? 'bg-white shadow text-purple-900' : 'text-stone-500'}`}>Figuras</button>
-                                           <button onClick={() => setTurnFormData({...turnFormData, type: 'cocina', date: ''})} className={`flex-1 py-1.5 rounded-md text-sm font-bold ${turnFormData.type === 'cocina' ? 'bg-white shadow text-orange-900' : 'text-stone-500'}`}>Cocina</button>
-                                       </div>
-                                       {turnFormData.type === 'figura' ? <input type="text" placeholder="Día/Momento" className="w-full p-2 border rounded" value={turnFormData.date} onChange={e => setTurnFormData({...turnFormData, date: e.target.value})}/> : <input type="date" className="w-full p-2 border rounded" value={turnFormData.date} onChange={e => setTurnFormData({...turnFormData, date: e.target.value})}/>}
-                                       <input type="text" placeholder="Concepto (ej: Judas)" className="w-full p-2 border rounded" value={turnFormData.concept} onChange={e => setTurnFormData({...turnFormData, concept: e.target.value})}/>
-                                   </div>
+                                            <button onClick={() => setTurnFormData({...turnFormData, type: 'figura', date: ''})} className={`flex-1 py-1.5 rounded-md text-sm font-bold ${turnFormData.type === 'figura' ? 'bg-white shadow text-purple-900' : 'text-stone-500'}`}>Figuras</button>
+                                            <button onClick={() => setTurnFormData({...turnFormData, type: 'cocina', date: ''})} className={`flex-1 py-1.5 rounded-md text-sm font-bold ${turnFormData.type === 'cocina' ? 'bg-white shadow text-orange-900' : 'text-stone-500'}`}>Cocina</button>
+                                        </div>
+                                        {turnFormData.type === 'figura' ? <input type="text" placeholder="Día/Momento" className="w-full p-2 border rounded" value={turnFormData.date} onChange={e => setTurnFormData({...turnFormData, date: e.target.value})}/> : <input type="date" className="w-full p-2 border rounded" value={turnFormData.date} onChange={e => setTurnFormData({...turnFormData, date: e.target.value})}/>}
+                                        <input type="text" placeholder="Concepto (ej: Judas)" className="w-full p-2 border rounded" value={turnFormData.concept} onChange={e => setTurnFormData({...turnFormData, concept: e.target.value})}/>
+                                    </div>
                                     <div className="flex-1 overflow-y-auto border border-stone-100 rounded-lg p-2 bg-stone-50">
-                                       <span className="text-xs font-bold text-stone-400 uppercase block mb-2 px-1">{turnFormData.type === 'figura' ? 'Seleccionar Hermano (1)' : 'Seleccionar Equipo de Cocina'}</span>
+                                        <span className="text-xs font-bold text-stone-400 uppercase block mb-2 px-1">{turnFormData.type === 'figura' ? 'Seleccionar Hermano (1)' : 'Seleccionar Equipo de Cocina'}</span>
                                         <div className="space-y-1">
                                             {brothers.map(b => {
-                                               const isSelected = turnFormData.brotherIds.includes(b.id);
-                                               return (
-                                                   <button key={b.id} onClick={() => { if (turnFormData.type === 'figura') setTurnFormData({...turnFormData, brotherIds: [b.id]}); else toggleTurnBrother(b.id); }} className={`w-full text-left px-3 py-2 rounded flex items-center justify-between text-sm ${isSelected ? (turnFormData.type === 'figura' ? 'bg-purple-100 text-purple-900 font-bold' : 'bg-orange-100 text-orange-900 border border-orange-200') : 'hover:bg-stone-200 bg-white'}`}>
-                                                       <div className="flex items-center gap-2">{turnFormData.type === 'cocina' && (isSelected ? <Icons.CheckSquare size={18}/> : <Icons.Square size={18} className="text-stone-300"/>)}<span>{b.nickname}</span></div>
-                                                       {turnFormData.type === 'figura' && isSelected && <Icons.Check size={16}/>}
-                                                   </button>
-                                               );
+                                                const isSelected = turnFormData.brotherIds.includes(b.id);
+                                                return (
+                                                    <button key={b.id} onClick={() => { if (turnFormData.type === 'figura') setTurnFormData({...turnFormData, brotherIds: [b.id]}); else toggleTurnBrother(b.id); }} className={`w-full text-left px-3 py-2 rounded flex items-center justify-between text-sm ${isSelected ? (turnFormData.type === 'figura' ? 'bg-purple-100 text-purple-900 font-bold' : 'bg-orange-100 text-orange-900 border border-orange-200') : 'hover:bg-stone-200 bg-white'}`}>
+                                                        <div className="flex items-center gap-2">{turnFormData.type === 'cocina' && (isSelected ? <Icons.CheckSquare size={18}/> : <Icons.Square size={18} className="text-stone-300"/>)}<span>{b.nickname}</span></div>
+                                                        {turnFormData.type === 'figura' && isSelected && <Icons.Check size={16}/>}
+                                                    </button>
+                                                );
                                             })}
-                                       </div>
-                                   </div>
+                                        </div>
+                                    </div>
                                     <div className="flex gap-2 mt-4 shrink-0"><button onClick={() => setShowTurnModal(false)} className="flex-1 py-2 text-stone-500">Cancelar</button><button onClick={saveTurn} className="flex-1 py-2 bg-stone-900 text-white rounded font-bold">Guardar</button></div>
                                 </div>
                             </div>
                         )}
                         {renderMemberModal()}
                         <div className="space-y-6">
-                           <section><h3 className="text-sm font-bold text-stone-400 uppercase mb-3">Acciones Rápidas</h3><div className="grid grid-cols-2 gap-3"><button onClick={openCreateEventModal} className="p-4 bg-white border border-stone-200 rounded-xl text-left hover:border-blue-300 flex flex-col items-center justify-center gap-2 shadow-sm"><Icons.Calendar size={24} className="text-blue-500"/><span className="block font-bold text-stone-800 text-sm">Nuevo Evento</span></button><button onClick={openCreateTurnModal} className="p-4 bg-white border border-stone-200 rounded-xl text-left hover:border-purple-300 flex flex-col items-center justify-center gap-2 shadow-sm"><Icons.User size={24} className="text-purple-900"/><span className="block font-bold text-stone-800 text-sm">Asignar Turno</span></button></div></section>
-                            
-                            <section>
-                                <div className="flex justify-between items-center mb-3">
-                                    <h3 className="text-sm font-bold text-stone-400 uppercase">Gestión de Hermanos</h3>
-                                    <button onClick={openCreateMemberModal} className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1 rounded-full font-bold flex items-center gap-1"><Icons.Plus size={12}/> Añadir</button>
-                                </div>
-                                <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
-                                   {brothers.length > 0 ? (
-                                        <div className="divide-y divide-stone-100">
-                                           {brothers.map(bro => (
-                                               <div key={bro.id} className="p-3 flex justify-between items-center hover:bg-stone-50">
-                                                   <div>
-                                                       <span className="block font-bold text-stone-800 text-sm">{bro.nickname}</span>
-                                                       <span className="text-xs text-stone-500">{bro.name} • {bro.role}</span>
-                                                   </div>
-                                                   <div className="flex gap-2">
-                                                       <button onClick={() => openEditMemberModal(bro)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Icons.Pencil size={14}/></button>
-                                                       <button onClick={() => requestDeleteMember(bro.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><Icons.Trash2 size={14}/></button>
-                                                   </div>
-                                               </div>
-                                           ))}
-                                       </div>
-                                    ) : <div className="p-4 text-center text-sm text-stone-400">No hay hermanos registrados</div>}
-                                </div>
-                            </section>
-
-                           <section><h3 className="text-sm font-bold text-stone-400 uppercase mb-3">Eventos Activos</h3><div className="space-y-2">{events.length > 0 ? events.map(ev => (<div key={ev.id} className="bg-white p-3 rounded-xl border border-stone-200 flex justify-between items-center"><div><span className="block font-bold text-stone-800 text-sm">{ev.title}</span><span className="text-xs text-stone-500">{new Date(ev.date).toLocaleDateString()} • {ev.guestPrice}€ Inv.</span></div><div className="flex gap-2"><button onClick={() => openEditEventModal(ev)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Icons.Pencil size={16}/></button><button onClick={() => requestDeleteEvent(ev.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><Icons.Trash2 size={16}/></button></div></div>)) : <div className="text-center p-4 text-stone-400 text-sm italic">No hay eventos activos</div>}</div></section>
-                           <section><h3 className="text-sm font-bold text-stone-400 uppercase mb-3">Gestión de Turnos</h3><div className="space-y-2">{turns.length > 0 ? turns.map(t => (<div key={t.id} className="bg-white p-3 rounded-xl border border-stone-200 flex justify-between items-center"><div><span className="block font-bold text-stone-800 text-sm flex items-center gap-2">{t.type === 'cocina' ? <Icons.ChefHat size={14} className="text-orange-500"/> : <Icons.Accessibility size={14} className="text-purple-500"/>}{t.concept}</span><span className="text-xs text-stone-500">{t.type === 'cocina' ? new Date(t.date).toLocaleDateString() : t.date} • {t.brotherIds.length} {t.brotherIds.length === 1 ? 'Hermano' : 'Hermanos'}</span></div><div className="flex gap-2"><button onClick={() => openEditTurnModal(t)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Icons.Pencil size={16}/></button><button onClick={() => requestDeleteTurn(t.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><Icons.Trash2 size={16}/></button></div></div>)) : <div className="text-center p-4 text-stone-400 text-sm italic">No hay turnos asignados</div>}</div></section>
+                            <section><h3 className="text-sm font-bold text-stone-400 uppercase mb-3">Acciones Rápidas</h3><div className="grid grid-cols-2 gap-3"><button onClick={openCreateEventModal} className="p-4 bg-white border border-stone-200 rounded-xl text-left hover:border-blue-300 flex flex-col items-center justify-center gap-2 shadow-sm"><Icons.Calendar size={24} className="text-blue-500"/><span className="block font-bold text-stone-800 text-sm">Nuevo Evento</span></button><button onClick={openCreateTurnModal} className="p-4 bg-white border border-stone-200 rounded-xl text-left hover:border-purple-300 flex flex-col items-center justify-center gap-2 shadow-sm"><Icons.User size={24} className="text-purple-900"/><span className="block font-bold text-stone-800 text-sm">Asignar Turno</span></button></div></section>
+                            <section><div className="flex justify-between items-center mb-3"><h3 className="text-sm font-bold text-stone-400 uppercase">Gestión de Hermanos</h3><button onClick={openCreateMemberModal} className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1 rounded-full font-bold flex items-center gap-1"><Icons.Plus size={12}/> Añadir</button></div><div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">{brothers.length > 0 ? (<div className="divide-y divide-stone-100">{brothers.map(bro => (<div key={bro.id} className="p-3 flex justify-between items-center hover:bg-stone-50"><div><span className="block font-bold text-stone-800 text-sm">{bro.nickname}</span><span className="text-xs text-stone-500">{bro.name} • {bro.role}</span></div><div className="flex gap-2"><button onClick={() => openEditMemberModal(bro)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Icons.Pencil size={14}/></button><button onClick={() => requestDeleteMember(bro.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><Icons.Trash2 size={14}/></button></div></div>))}</div>) : <div className="p-4 text-center text-sm text-stone-400">No hay hermanos registrados</div>}</div></section>
+                            <section><h3 className="text-sm font-bold text-stone-400 uppercase mb-3">Eventos Activos</h3><div className="space-y-2">{events.length > 0 ? events.map(ev => (<div key={ev.id} className="bg-white p-3 rounded-xl border border-stone-200 flex justify-between items-center"><div><span className="block font-bold text-stone-800 text-sm">{ev.title}</span><span className="text-xs text-stone-500">{new Date(ev.date).toLocaleDateString()} • {ev.guestPrice}€ Inv.</span></div><div className="flex gap-2"><button onClick={() => openEditEventModal(ev)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Icons.Pencil size={16}/></button><button onClick={() => requestDeleteEvent(ev.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><Icons.Trash2 size={16}/></button></div></div>)) : <div className="text-center p-4 text-stone-400 text-sm italic">No hay eventos activos</div>}</div></section>
+                            <section><h3 className="text-sm font-bold text-stone-400 uppercase mb-3">Gestión de Turnos</h3><div className="space-y-2">{turns.length > 0 ? turns.map(t => (<div key={t.id} className="bg-white p-3 rounded-xl border border-stone-200 flex justify-between items-center"><div><span className="block font-bold text-stone-800 text-sm flex items-center gap-2">{t.type === 'cocina' ? <Icons.ChefHat size={14} className="text-orange-500"/> : <Icons.Accessibility size={14} className="text-purple-500"/>}{t.concept}</span><span className="text-xs text-stone-500">{t.type === 'cocina' ? new Date(t.date).toLocaleDateString() : t.date} • {t.brotherIds.length} {t.brotherIds.length === 1 ? 'Hermano' : 'Hermanos'}</span></div><div className="flex gap-2"><button onClick={() => openEditTurnModal(t)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Icons.Pencil size={16}/></button><button onClick={() => requestDeleteTurn(t.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><Icons.Trash2 size={16}/></button></div></div>)) : <div className="text-center p-4 text-stone-400 text-sm italic">No hay turnos asignados</div>}</div></section>
                         </div>
                     </div>
                 );
@@ -1164,7 +1139,7 @@
                     {notification && <Notification message={notification.msg} type={notification.type} onClose={() => setNotification(null)}/>}
                     <main className="min-h-screen pb-20">
                         {view === 'dashboard' && renderDashboardView()}
-                       {view === 'calendar' && renderCalendarView()}
+                        {view === 'calendar' && renderCalendarView()}
                         {view === 'ranking' && renderRankingView()}
                         {view === 'turnos' && renderTurnosView()}
                         {view === 'profile' && renderProfileAdminView()}
@@ -1181,8 +1156,8 @@
                         {currentUser?.role === 'junta' && (
                             <NavButton icon={<Icons.BookOpen size={20}/>} label="Perfil" active={view === 'profile'} onClick={() => setView('profile')}/>
                         )}
-                   </nav>
-               </div>
+                    </nav>
+                </div>
             );
         }
 
