@@ -1,0 +1,7 @@
+{
+  "name": "El Tablón del Mitigador Pro",
+  "description": "",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
